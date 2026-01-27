@@ -48,4 +48,4 @@ async def baixar_cmd(_, msg: Message):
         await status.edit(f"❌ Erro:\n<code>{e}</code>")
 
 print("✅ Userbot iniciado")
-app.run()
+app.run() 
