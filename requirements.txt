@@ -1,3 +1,2 @@
-python-telegram-bot==20.7
-aria2p
-aiohttp
+pyTelegramBotAPI
+requests
