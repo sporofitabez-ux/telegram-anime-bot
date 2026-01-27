@@ -1,6 +1,8 @@
 import os
 
+# Token do bot (BotFather)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN não definido nas variáveis de ambiente")
+# Credenciais Seedr
+SEEDR_EMAIL = os.getenv("SEEDR_EMAIL")
+SEEDR_PASSWORD = os.getenv("SEEDR_PASSWORD")
