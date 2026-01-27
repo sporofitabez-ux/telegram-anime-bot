@@ -1,51 +1,58 @@
-import asyncio
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from downloader import baixar
-from config import API_ID, API_HASH
+import os
+import telebot
+from telebot.types import Message
+from downloader import aria2_add
 
-app = Client(
-    "anime_userbot",
-    api_id=API_ID,
-    api_hash=API_HASH
-)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-@app.on_message(filters.command("start") & filters.group)
-async def start(_, msg: Message):
-    await msg.reply(
-        "🤖 <b>Anime Downloader</b>\n\n"
-        "Use:\n"
-        "<code>/baixar LINK</code>\n\n"
-        "Suporte:\n"
-        "• Magnet\n"
-        "• Torrent (nyaa.si)\n"
-        "• Link direto"
+if not BOT_TOKEN:
+    raise RuntimeError("❌ BOT_TOKEN não definido nas variáveis de ambiente")
+
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+
+@bot.message_handler(commands=["start"])
+def start(msg: Message):
+    bot.reply_to(
+        msg,
+        "🤖 <b>Anime Downloader Bot</b>\n\n"
+        "Use o comando:\n"
+        "<code>/download LINK</code>\n\n"
+        "✅ Funciona em grupos\n"
+        "✅ Suporte a magnet\n"
+        "✅ Suporte a nyaa.si\n"
     )
 
-@app.on_message(filters.command("baixar") & filters.group)
-async def baixar_cmd(_, msg: Message):
-    if len(msg.command) < 2:
-        await msg.reply("❌ Envie o link junto com o comando.")
-        return
-
-    link = msg.command[1]
-    status = await msg.reply("⬇️ Baixando... aguarde.")
-
+@bot.message_handler(commands=["download"])
+def download(msg: Message):
     try:
-        download = baixar(link)
+        parts = msg.text.split(maxsplit=1)
 
-        while not download.is_complete:
-            await asyncio.sleep(5)
-            download = download.api.get_download(download.gid)
+        if len(parts) < 2:
+            bot.reply_to(
+                msg,
+                "❌ Envie o link junto com o comando\n"
+                "Exemplo:\n<code>/download LINK</code>"
+            )
+            return
 
-        arquivo = download.files[0].path
+        link = parts[1].strip()
 
-        await status.edit("📤 Enviando arquivo...")
-        await msg.reply_document(arquivo, caption="✅ Download concluído")
-        await status.delete()
+        result = aria2_add(link)
+
+        if "result" in result:
+            bot.reply_to(
+                msg,
+                "⬇️ <b>Download iniciado com sucesso!</b>\n"
+                "⏳ Aguarde o processamento."
+            )
+        else:
+            bot.reply_to(
+                msg,
+                f"❌ Erro ao iniciar download:\n<code>{result}</code>"
+            )
 
     except Exception as e:
-        await status.edit(f"❌ Erro:\n<code>{e}</code>")
+        bot.reply_to(msg, f"❌ Erro interno:\n<code>{e}</code>")
 
-print("✅ Userbot iniciado")
-app.run() 
+print("🤖 Bot iniciado com sucesso")
+bot.infinity_polling(skip_pending=True)
