@@ -1,24 +1,28 @@
-import os
 import requests
-import json
-from config import DOWNLOAD_DIR, ARIA2_RPC_URL, ARIA2_SECRET
 
-if not os.path.exists(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR)
+# URL fictícia por enquanto (mock)
+DOWNLOAD_API_URL = "https://example.com/api/add"
 
-def aria2_add(uri):
-    payload = {
-        "jsonrpc": "2.0",
-        "id": "qwer",
-        "method": "aria2.addUri",
-        "params": [
-            f"token:{ARIA2_SECRET}" if ARIA2_SECRET else [],
-            [uri],
-            {
-                "dir": DOWNLOAD_DIR
-            }
-        ]
+def aria2_add(link: str):
+    """
+    Envia o link para uma API externa de download.
+    Por enquanto é um mock compatível com Railway.
+    """
+
+    # validações básicas
+    if not link.startswith(("magnet:", "http://", "https://")):
+        return {"error": "Link inválido"}
+
+    # ⚠️ MOCK (simula sucesso)
+    return {
+        "result": "ok",
+        "message": "Download enviado para a fila"
     }
 
-    response = requests.post(ARIA2_RPC_URL, json=payload)
-    return response.json()
+    # 🔜 quando criarmos a API real, será algo assim:
+    # response = requests.post(
+    #     DOWNLOAD_API_URL,
+    #     json={"link": link},
+    #     timeout=10
+    # )
+    # return response.json()
