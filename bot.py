@@ -1,35 +1,45 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import telebot
+from telebot.types import Message
 from config import BOT_TOKEN
-from downloader import download_link
+from downloader import aria2_add
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🤖 Bot de downloads de anime\n\n"
-        "Use:\n"
-        "/baixar <link>\n\n"
-        "Suporta magnet, nyaa.si e links diretos."
+if not BOT_TOKEN:
+    raise RuntimeError("❌ BOT_TOKEN não definido nas variáveis de ambiente")
+
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+
+@bot.message_handler(commands=["start"])
+def start(msg: Message):
+    bot.reply_to(
+        msg,
+        "🤖 <b>Anime Downloader Bot</b>\n\n"
+        "Envie o comando:\n"
+        "<code>/baixar LINK</code>\n\n"
+        "Suporte:\n"
+        "• Magnet\n"
+        "• Links diretos\n"
+        "• nyaa.si"
     )
 
-async def baixar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ Envie o link junto com o comando.")
-        return
-
-    link = context.args[0]
-    await update.message.reply_text("⬇️ Download iniciado...")
-
+@bot.message_handler(commands=["baixar"])
+def baixar(msg: Message):
     try:
-        download_link(link)
-        await update.message.reply_text("✅ Download adicionado com sucesso!")
+        parts = msg.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(msg, "❌ Envie o link junto com o comando.\nEx: /baixar LINK")
+            return
+
+        link = parts[1].strip()
+
+        r = aria2_add(link)
+
+        if "result" in r:
+            bot.reply_to(msg, "⬇️ <b>Download iniciado com sucesso!</b>")
+        else:
+            bot.reply_to(msg, f"❌ Erro ao iniciar download:\n<code>{r}</code>")
+
     except Exception as e:
-        await update.message.reply_text(f"❌ Erro: {e}")
+        bot.reply_to(msg, f"❌ Erro interno:\n<code>{e}</code>")
 
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("baixar", baixar))
-
-    print("🤖 Bot rodando...")
-    app.run_polling()
+print("🤖 Bot iniciado com sucesso!")
+bot.infinity_polling()
