@@ -1,7 +1,10 @@
 import telebot
 from telebot.types import Message
 from config import BOT_TOKEN
-from downloader import aria2_add
+from seedr_api import add_torrent
+
+if not BOT_TOKEN:
+    raise RuntimeError("❌ BOT_TOKEN não configurado")
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
@@ -15,9 +18,9 @@ def start(msg: Message):
         "<code>/baixar LINK</code>\n\n"
         "📌 Suporte:\n"
         "• Magnet\n"
-        "• Links diretos\n"
+        "• Torrent\n"
         "• nyaa.si\n\n"
-        "⚠️ Modo atual: <b>API externa</b>"
+        "⚠️ Modo atual: API externa (Seedr)"
     )
 
 
@@ -29,29 +32,34 @@ def baixar(msg: Message):
         bot.reply_to(
             msg,
             "❌ Envie o link junto com o comando.\n"
-            "Exemplo:\n<code>/baixar magnet:...</code>"
+            "Exemplo:\n<code>/baixar magnet:?xt=...</code>"
         )
         return
 
     link = parts[1].strip()
 
-    bot.reply_to(msg, "🔍 Link recebido, processando...")
+    bot.reply_to(msg, "🔎 Link recebido, enviando para o Seedr...")
 
-    result = aria2_add(link)
+    try:
+        r = add_torrent(link)
 
-    if "result" in result:
-        bot.send_message(
-            msg.chat.id,
-            "✅ <b>Link enviado com sucesso!</b>\n"
-            "⏳ Download será processado externamente.\n\n"
-            "🔔 Você será notificado quando estiver pronto."
+        if "user_torrent_id" in r:
+            bot.reply_to(
+                msg,
+                "✅ <b>Download iniciado com sucesso!</b>\n\n"
+                "⏳ O Seedr está processando o arquivo.\n"
+                "🔔 Você será notificado quando estiver pronto."
+            )
+        else:
+            bot.reply_to(msg, f"⚠️ Resposta inesperada:\n<code>{r}</code>")
+
+    except Exception as e:
+        bot.reply_to(
+            msg,
+            "❌ Erro ao enviar para o Seedr:\n"
+            f"<code>{e}</code>"
         )
-    else:
-        bot.send_message(
-            msg.chat.id,
-            f"❌ Erro ao enviar link:\n<code>{result}</code>"
-        )
 
 
-print("🤖 Bot iniciado com sucesso")
+print("🤖 Bot iniciado com sucesso!")
 bot.infinity_polling()
