@@ -1,28 +1,13 @@
-import requests
+import aria2p
+from config import DOWNLOAD_DIR
 
-# URL fictícia por enquanto (mock)
-DOWNLOAD_API_URL = "https://example.com/api/add"
+client = aria2p.Client(
+    host="http://localhost",
+    port=6800,
+    secret=""
+)
 
-def aria2_add(link: str):
-    """
-    Envia o link para uma API externa de download.
-    Por enquanto é um mock compatível com Railway.
-    """
+aria2 = aria2p.API(client)
 
-    # validações básicas
-    if not link.startswith(("magnet:", "http://", "https://")):
-        return {"error": "Link inválido"}
-
-    # ⚠️ MOCK (simula sucesso)
-    return {
-        "result": "ok",
-        "message": "Download enviado para a fila"
-    }
-
-    # 🔜 quando criarmos a API real, será algo assim:
-    # response = requests.post(
-    #     DOWNLOAD_API_URL,
-    #     json={"link": link},
-    #     timeout=10
-    # )
-    # return response.json()
+def baixar(link):
+    return aria2.add_uris([link], options={"dir": DOWNLOAD_DIR})
