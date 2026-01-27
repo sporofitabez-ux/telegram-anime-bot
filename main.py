@@ -1,58 +1,79 @@
 import os
-import telebot
-from telebot.types import Message
-from downloader import aria2_add
+import re
+import requests
+import aiofiles
+import asyncio
+from pyrogram import Client, filters
+from pyrogram.types import Message
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+SESSION_STRING = os.getenv("SESSION_STRING")
 
-if not BOT_TOKEN:
-    raise RuntimeError("❌ BOT_TOKEN não definido nas variáveis de ambiente")
+app = Client(
+    "anime_downloader",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=SESSION_STRING
+)
 
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+DOWNLOAD_DIR = "downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-@bot.message_handler(commands=["start"])
-def start(msg: Message):
-    bot.reply_to(
-        msg,
-        "🤖 <b>Anime Downloader Bot</b>\n\n"
-        "Use o comando:\n"
-        "<code>/download LINK</code>\n\n"
-        "✅ Funciona em grupos\n"
-        "✅ Suporte a magnet\n"
-        "✅ Suporte a nyaa.si\n"
+def is_nyaa(url: str):
+    return "nyaa.si" in url
+
+def extract_torrent(url: str):
+    r = requests.get(url)
+    match = re.search(r'href="(/download/\\d+\\.torrent)"', r.text)
+    if not match:
+        return None
+    return "https://nyaa.si" + match.group(1)
+
+async def download_file(url: str, filename: str):
+    async with aiofiles.open(filename, "wb") as f:
+        r = requests.get(url, stream=True)
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                await f.write(chunk)
+
+@app.on_message(filters.command("start") & filters.group)
+async def start(_, msg: Message):
+    await msg.reply(
+        "🤖 **Anime Downloader Userbot**\n\n"
+        "📥 Use:\n"
+        "`/baixar LINK`\n\n"
+        "✅ Suporte:\n"
+        "• Links diretos\n"
+        "• nyaa.si\n"
+        "• .torrent\n"
     )
 
-@bot.message_handler(commands=["download"])
-def download(msg: Message):
-    try:
-        parts = msg.text.split(maxsplit=1)
+@app.on_message(filters.command("baixar") & filters.group)
+async def baixar(_, msg: Message):
+    if len(msg.command) < 2:
+        await msg.reply("❌ Use: `/baixar LINK`")
+        return
 
-        if len(parts) < 2:
-            bot.reply_to(
-                msg,
-                "❌ Envie o link junto com o comando\n"
-                "Exemplo:\n<code>/download LINK</code>"
-            )
+    url = msg.command[1]
+
+    await msg.reply("⬇️ Iniciando download...")
+
+    if is_nyaa(url):
+        torrent_url = extract_torrent(url)
+        if not torrent_url:
+            await msg.reply("❌ Não consegui extrair o torrent do nyaa")
             return
+        url = torrent_url
 
-        link = parts[1].strip()
+    filename = os.path.join(DOWNLOAD_DIR, url.split("/")[-1])
 
-        result = aria2_add(link)
-
-        if "result" in result:
-            bot.reply_to(
-                msg,
-                "⬇️ <b>Download iniciado com sucesso!</b>\n"
-                "⏳ Aguarde o processamento."
-            )
-        else:
-            bot.reply_to(
-                msg,
-                f"❌ Erro ao iniciar download:\n<code>{result}</code>"
-            )
-
+    try:
+        await download_file(url, filename)
+        await msg.reply_document(filename)
+        os.remove(filename)
     except Exception as e:
-        bot.reply_to(msg, f"❌ Erro interno:\n<code>{e}</code>")
+        await msg.reply(f"❌ Erro:\n`{e}`")
 
-print("🤖 Bot iniciado com sucesso")
-bot.infinity_polling(skip_pending=True)
+print("✅ Userbot iniciado com sucesso")
+app.run()
