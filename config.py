@@ -1,8 +1,6 @@
 import os
 
-# Token do bot (BotFather)
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
 
-# Credenciais Seedr
-SEEDR_EMAIL = os.getenv("SEEDR_EMAIL")
-SEEDR_PASSWORD = os.getenv("SEEDR_PASSWORD")
+DOWNLOAD_DIR = "downloads"
