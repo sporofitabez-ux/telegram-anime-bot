@@ -1,6 +1,14 @@
 # Telegram Anime Downloader Bot
 
-Bot de Telegram para baixar animes usando links magnet, nyaa.si e links diretos.
+Bot em PT-BR para baixar animes via Telegram.
 
-## Comandos
-/baixar <link>
+## Suporte
+- Magnet
+- Links diretos
+- nyaa.si
+
+## Comando
+/baixar LINK
+
+## Deploy
+Compatível com Railway
