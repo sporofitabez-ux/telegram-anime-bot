@@ -1,45 +1,59 @@
+import os
 import telebot
 from telebot.types import Message
-from config import BOT_TOKEN
-from downloader import aria2_add
+
+# ==============================
+# CONFIGURAÇÃO
+# ==============================
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
     raise RuntimeError("❌ BOT_TOKEN não definido nas variáveis de ambiente")
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
+# ==============================
+# COMANDOS
+# ==============================
+
 @bot.message_handler(commands=["start"])
 def start(msg: Message):
     bot.reply_to(
         msg,
         "🤖 <b>Anime Downloader Bot</b>\n\n"
-        "Envie o comando:\n"
+        "Como usar:\n"
         "<code>/baixar LINK</code>\n\n"
-        "Suporte:\n"
-        "• Magnet\n"
-        "• Links diretos\n"
-        "• nyaa.si"
+        "⚠️ (Modo teste)\n"
+        "No momento o bot apenas valida o link.\n"
+        "O download real será ativado no próximo passo."
     )
 
 @bot.message_handler(commands=["baixar"])
 def baixar(msg: Message):
-    try:
-        parts = msg.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(msg, "❌ Envie o link junto com o comando.\nEx: /baixar LINK")
-            return
+    parts = msg.text.split(maxsplit=1)
 
-        link = parts[1].strip()
+    if len(parts) < 2:
+        bot.reply_to(
+            msg,
+            "❌ Você precisa enviar o link junto com o comando.\n\n"
+            "Exemplo:\n<code>/baixar https://nyaa.si/view/XXXX</code>"
+        )
+        return
 
-        r = aria2_add(link)
+    link = parts[1].strip()
 
-        if "result" in r:
-            bot.reply_to(msg, "⬇️ <b>Download iniciado com sucesso!</b>")
-        else:
-            bot.reply_to(msg, f"❌ Erro ao iniciar download:\n<code>{r}</code>")
+    # TESTE — apenas confirma que recebeu o link
+    bot.reply_to(
+        msg,
+        "✅ <b>Link recebido com sucesso!</b>\n\n"
+        f"<code>{link}</code>\n\n"
+        "🚧 Download será ativado em breve."
+    )
 
-    except Exception as e:
-        bot.reply_to(msg, f"❌ Erro interno:\n<code>{e}</code>")
+# ==============================
+# INICIALIZAÇÃO
+# ==============================
 
 print("🤖 Bot iniciado com sucesso!")
-bot.infinity_polling()
+bot.infinity_polling(skip_pending=True)
