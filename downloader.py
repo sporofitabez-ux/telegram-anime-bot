@@ -1,19 +1,16 @@
-import aria2p
+import requests
+import json
 import os
 
-DOWNLOAD_DIR = "downloads"
+ARIA2_RPC = os.getenv("ARIA2_RPC", "http://localhost:6800/jsonrpc")
 
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+def aria2_add(link: str):
+    payload = {
+        "jsonrpc": "2.0",
+        "id": "qwer",
+        "method": "aria2.addUri",
+        "params": [[link]]
+    }
 
-aria2 = aria2p.API(
-    aria2p.Client(
-        host="http://localhost",
-        port=6800,
-        secret=""
-    )
-)
-
-def download(url):
-    download = aria2.add_uris([url], options={"dir": DOWNLOAD_DIR})
-    download.wait_for_complete()
-    return download.files[0].path
+    r = requests.post(ARIA2_RPC, data=json.dumps(payload))
+    return r.json()
